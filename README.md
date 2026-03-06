@@ -1,158 +1,161 @@
-# Go Boilerplate
+# Go Boilerplate (backend)
 
-A production-ready monorepo template for building scalable web applications with Go backend and TypeScript frontend. Built with modern best practices, clean architecture, and comprehensive tooling.
+A focused Go backend repository implementing a production-ready REST service with clean architecture. This repo contains the backend code. It uses modern Go libraries and conventions and is intended as a starting point for building a scalable Go service.
 
-## Features
+Key libraries and tools used
+- `github.com/labstack/echo/v4` — HTTP framework
+- `github.com/jackc/pgx/v5` — PostgreSQL driver / connection pooling
+- `github.com/hibiken/asynq` — Redis-based background job processing
+- `github.com/rs/zerolog` — Structured logging
+- `github.com/newrelic/go-agent/v3` — New Relic integrations (optional)
+- `github.com/resend/resend-go` — Transactional email integration
+- `github.com/clerk/clerk-sdk-go` — Authentication SDK (used where appropriate)
+- `github.com/jackc/tern` — Database migrations (Taskfile integrates this)
+- Task runner: `Taskfile.yml` (uses `task`)
 
-- **Monorepo Structure**: Organized with Turborepo for efficient builds and development
-- **Go Backend**: High-performance REST API with Echo framework
-- **Authentication**: Integrated Clerk SDK for secure user management
-- **Database**: PostgreSQL with migrations and connection pooling
-- **Background Jobs**: Redis-based async job processing with Asynq
-- **Observability**: New Relic APM integration and structured logging
-- **Email Service**: Transactional emails with Resend and HTML templates
-- **Testing**: Comprehensive test infrastructure with Testcontainers
-- **API Documentation**: OpenAPI/Swagger specification
-- **Security**: Rate limiting, CORS, secure headers, and JWT validation
+Repository layout
 
-## Project Structure
-
-```
-go-boilerplate/
-├── apps/backend/          # Go backend application
-├── packages/         # Frontend packages (React, Vue, etc.)
-├── package.json      # Monorepo configuration
-├── turbo.json        # Turborepo configuration
-└── README.md         # This file
-```
-
-## Quick Start
-
-### Prerequisites
-
-- Go 1.24 or higher
-- Node.js 22+ and Bun
-- PostgreSQL 16+
-- Redis 8+
-
-### Installation
-
-1. Clone the repository:
-```bash
-git clone https://github.com/sriniously/go-boilerplate.git
-cd go-boilerplate
+```learn_go_backend/README.md#L1-40
+go-starter/
+├── cmd/                   # CLI / main entrypoint(s)
+│   └── go-boilerplate/    # main application entry (go run ./cmd/go-boilerplate)
+├── internal/              # application packages (config, server, handlers, service, repo, etc.)
+├── static/                # static assets (if used)
+├── templates/             # HTML/email templates
+├── Taskfile.yml           # development tasks (run, migrations, tidy, ...)
+├── go.mod
+└── README.md
 ```
 
-2. Install dependencies:
-```bash
-# Install frontend dependencies
-bun install
+Quick start
 
-# Install backend dependencies
-cd apps/backend
+Prerequisites
+- Go 1.24+
+- PostgreSQL (the DB)
+- Redis (for caching / background workers)
+- `task` (recommended) — used to run tasks in `Taskfile.yml`
+- `tern` CLI (for migrations) — used by `task migrations:new` / `task migrations:up`
+
+Install and run locally
+
+```learn_go_backend/README.md#L41-70
+# 1. Clone the repo
+git clone <your-repo-url>
+cd learn_go_backend
+
+# 2. Download Go dependencies
 go mod download
 ```
 
-3. Set up environment variables:
-```bash
-cp apps/backend/.env.example apps/backend/.env
-# Edit apps/backend/.env with your configuration
+Configuration / environment variables
+
+This service loads configuration from environment variables prefixed with `BOILERPLATE_`. The loader lowercases and maps nested fields using dots/underscores. Example environment keys you will commonly set:
+
+- `BOILERPLATE_PRIMARY_ENV` — runtime environment (e.g. `local`, `development`, `production`)
+- `BOILERPLATE_SERVER_PORT` — HTTP server port (string)
+- `BOILERPLATE_SERVER_READ_TIMEOUT` — read timeout (int seconds)
+- `BOILERPLATE_SERVER_WRITE_TIMEOUT` — write timeout (int seconds)
+- `BOILERPLATE_DATABASE_HOST`
+- `BOILERPLATE_DATABASE_PORT`
+- `BOILERPLATE_DATABASE_USER`
+- `BOILERPLATE_DATABASE_PASSWORD`
+- `BOILERPLATE_DATABASE_NAME`
+- `BOILERPLATE_DATABASE_SSLMODE`
+- `BOILERPLATE_DATABASE_MAX_OPEN_CONNS`
+- `BOILERPLATE_REDIS_ADDRESS`
+- `BOILERPLATE_INTEGRATION_RESEND_API_KEY`
+- `BOILERPLATE_AUTH_SECRET_KEY`
+- `BOILERPLATE_OBSERVABILITY_NEW_RELIC_LICENSE_KEY`
+
+You can export these variables, or place them in an env file and load them in your shell. The code uses `koanf` + env provider and expects full variable names as shown.
+
+Example `.env` snippet
+
+```learn_go_backend/README.md#L71-100
+BOILERPLATE_PRIMARY_ENV=local
+BOILERPLATE_SERVER_PORT=8080
+BOILERPLATE_DATABASE_HOST=127.0.0.1
+BOILERPLATE_DATABASE_PORT=5432
+BOILERPLATE_DATABASE_USER=myuser
+BOILERPLATE_DATABASE_PASSWORD=mypassword
+BOILERPLATE_DATABASE_NAME=mydb
+BOILERPLATE_DB_DSN=postgres://myuser:mypassword@127.0.0.1:5432/mydb?sslmode=disable
+BOILERPLATE_REDIS_ADDRESS=127.0.0.1:6379
+BOILERPLATE_INTEGRATION_RESEND_API_KEY=your_resend_key
+BOILERPLATE_AUTH_SECRET_KEY=supersecret
+BOILERPLATE_OBSERVABILITY_NEW_RELIC_LICENSE_KEY=
 ```
 
-4. Start the database and Redis.
+Database migrations
 
-5. Run database migrations:
-```bash
-cd apps/backend
+`Taskfile.yml` exposes migration tasks which use `tern`. The Taskfile expects the environment variable `BOILERPLATE_DB_DSN` for migration commands.
+
+```learn_go_backend/README.md#L101-130
+# Apply all up migrations (Taskfile will prompt for confirmation)
+export BOILERPLATE_DB_DSN="postgres://user:pass@host:5432/db?sslmode=disable"
 task migrations:up
+
+# Create a new migration (uses tern)
+task migrations:new name=add_users_table
 ```
 
-6. Start the development server:
-```bash
-# From root directory
-bun dev
+Run the application
 
-# Or just the backend
-cd apps/backend
+```learn_go_backend/README.md#L131-160
+# Using the Taskfile
 task run
+
+# Or run directly with go
+go run ./cmd/go-boilerplate
 ```
 
-The API will be available at `http://localhost:8080`
+Notes about running
+- The server entrypoint is in `cmd/go-boilerplate/main.go`.
+- The application will automatically run DB migrations on startup when `Primary.Env` is not `local` (see config / code). For local development you can run migrations manually with the Taskfile.
+- The code gracefully handles shutdown signals and uses a default context timeout of 30s.
 
-## Development
+Development tasks
 
-### Available Commands
+```learn_go_backend/README.md#L161-190
+# View available tasks
+task --list-all
 
-```bash
-# Backend commands (from backend/ directory)
-task help              # Show all available tasks
-task run               # Run the application
-task migrations:new    # Create a new migration
-task migrations:up     # Apply migrations
-task test              # Run tests
-task tidy              # Format code and manage dependencies
+# Format and tidy
+task tidy
 
-# Frontend commands (from root directory)
-bun dev                # Start development servers
-bun build              # Build all packages
-bun lint               # Lint all packages
-```
-
-### Environment Variables
-
-The backend uses environment variables prefixed with `BOILERPLATE_`. Key variables include:
-
-- `BOILERPLATE_DATABASE_*` - PostgreSQL connection settings
-- `BOILERPLATE_SERVER_*` - Server configuration
-- `BOILERPLATE_AUTH_*` - Authentication settings
-- `BOILERPLATE_REDIS_*` - Redis connection
-- `BOILERPLATE_EMAIL_*` - Email service configuration
-- `BOILERPLATE_OBSERVABILITY_*` - Monitoring settings
-
-See `apps/backend/.env.example` for a complete list.
-
-## Architecture
-
-This boilerplate follows clean architecture principles:
-
-- **Handlers**: HTTP request/response handling
-- **Services**: Business logic implementation
-- **Repositories**: Data access layer
-- **Models**: Domain entities
-- **Infrastructure**: External services (database, cache, email)
-
-## Testing
-
-```bash
-# Run backend tests
-cd apps/backend
+# Run tests
 go test ./...
 
-# Run with coverage
-go test -cover ./...
-
-# Run integration tests (requires Docker)
+# Integration tests (Docker required)
 go test -tags=integration ./...
 ```
 
-### Production Considerations
+Architecture overview
 
-1. Use environment-specific configuration
-2. Enable production logging levels
-3. Configure proper database connection pooling
-4. Set up monitoring and alerting
-5. Use a reverse proxy (nginx, Caddy)
-6. Enable rate limiting and security headers
-7. Configure CORS for your domains
+- `cmd/` — application entrypoint(s)
+- `internal/config` — configuration and validation
+- `internal/server` — server bootstrap, HTTP server setup
+- `internal/router` — HTTP routes and middleware
+- `internal/handlers` — HTTP handlers
+- `internal/service` — business logic
+- `internal/repository` — data access (Postgres/Redis)
+- `internal/logger` — logging and observability integration
+- `internal/database` — migrations and DB initialization
+- `internal/middleware` — HTTP middleware (auth, rate limit, CORS)
 
-## Contributing
+Observability and monitoring
+- The repository includes New Relic integrations. Observability settings are optional and have sensible defaults. Configure New Relic with `BOILERPLATE_OBSERVABILITY_NEW_RELIC_LICENSE_KEY` and other `BOILERPLATE_OBSERVABILITY_*` variables if you want APM and log forwarding.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+Testing
+- Unit tests: `go test ./...`
+- Integration tests: `go test -tags=integration ./...` (Docker required)
+- Use the Taskfile `task test` if present for convenience.
 
-## License
+Contributing
+1. Fork the repository.
+2. Create a feature branch: `git checkout -b feature/awesome-thing`
+3. Run tests and linters locally.
+4. Open a PR with a clear description and tests where applicable.
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+License
+- This project is provided under the MIT License. See the `LICENSE` file for details.

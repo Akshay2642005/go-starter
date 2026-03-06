@@ -21,6 +21,7 @@ require (
 	github.com/redis/go-redis/v9 v9.14.1
 	github.com/resend/resend-go/v2 v2.28.0
 	github.com/rs/zerolog v1.34.0
+	golang.org/x/time v0.14.0
 )
 
 require (
@@ -38,7 +39,6 @@ require (
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
 	github.com/valyala/fasttemplate v1.2.2 // indirect
-	golang.org/x/time v0.14.0 // indirect
 )
 
 require (
